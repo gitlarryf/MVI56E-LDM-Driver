@@ -13,28 +13,32 @@
 #
 # Revision History:
 #    01/23/2019 19:08:14 created.
+#    07/16/2019 20:13:16 Changed stop process detection routine.
 #
 #######################################################################################
 export LD_LIBRARY_PATH=/lib:/usr/lib:/psft/lib:/opt/lib
 
 PROSOFT_STARTUP_DIR=/psft/bin/
-PROSOFT_STARTUP_APPLICATION=MyLDM_Driver
+# If you're NOT using the "run-driver" script, then change name below to the proper program
+# name, uncomment this line, and comment out the other line.
+PROSOFT_STARTUP_APPLICATION=run-driver
+#PROSOFT_STARTUP_APPLICATION=MyCustomProgramOrScript.exe
 
-# If the startup application is to be called from the Compact Flash card, we need to change
-# the working directory before running it, saving the current directory.
-# The previous one is saved.
+# If the startup application is to be called from the Compact Flash card, be sure to call
+# sync immediately after the driver returns, or the file system could become corrupt.
+# First, we change the working directory before running it, so the previous one is saved.
 OLD_WD=$PWD
+cd $PROSOFT_STARTUP_DIR
 
 # See how we were called.
 case "$1" in
   start)
-        cd $PROSOFT_STARTUP_DIR
         ./$PROSOFT_STARTUP_APPLICATION &
         ;;
   stop)
-        echo "Stopping ./$PROSOFT_STARTUP_APPLICATION"
-        PID=`pidof ./$PROSOFT_STARTUP_APPLICATION`
-        if [ ${PID:=0} -gt 1 -a ! "X$PID"="X " ]; then
+        echo "Stopping $PROSOFT_STARTUP_APPLICATION"
+        PID=`pidof $PROSOFT_STARTUP_APPLICATION`
+        if [ ${PID:=0} -gt 1 ]; then
             kill ${PID}
             if [ $? -ne 0 ]; then
                 echo "[  FAILED ]"
@@ -42,7 +46,7 @@ case "$1" in
                 echo "[ STOPPED ]"
             fi
         else
-            echo "./$PROSOFT_STARTUP_APPLICATION not running."
+            echo "$PROSOFT_STARTUP_APPLICATION not running."
         fi  
         ;;
   restart)
