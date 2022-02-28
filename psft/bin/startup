@@ -1,0 +1,58 @@
+#!/bin/sh
+#######################################################################################
+#  File   : startup
+#  Author : Larry Frieson
+#  Desc   : startup is a driver dispatcher script used on the MVI56E-LDM.  This script
+#           will start the LDM driver declared below.  To stop the driver, it will call
+#           kill on any of the the running instance of the driver.  This is just one of
+#           the many ways to start and stop an LDM driver. Please visit:
+#           https://gitlab.com/psft/mvi56e-ldm for more information and examples.
+#  Date   : 01/23/2019
+#
+#  Copyright (C) 2019 ProSoft Technology, Inc.  All rights reserved.
+#
+# Revision History:
+#    01/23/2019 19:08:14 created.
+#
+#######################################################################################
+export LD_LIBRARY_PATH=/lib:/usr/lib:/psft/lib:/opt/lib
+
+PROSOFT_STARTUP_DIR=/psft/bin/
+PROSOFT_STARTUP_APPLICATION=MyLDM_Driver
+
+# If the startup application is to be called from the Compact Flash card, we need to change
+# the working directory before running it, saving the current directory.
+# The previous one is saved.
+OLD_WD=$PWD
+
+# See how we were called.
+case "$1" in
+  start)
+        cd $PROSOFT_STARTUP_DIR
+        ./$PROSOFT_STARTUP_APPLICATION &
+        ;;
+  stop)
+        echo "Stopping ./$PROSOFT_STARTUP_APPLICATION"
+        PID=`pidof ./$PROSOFT_STARTUP_APPLICATION`
+        if [ ${PID:=0} -gt 1 -a ! "X$PID"="X " ]; then
+            kill ${PID}
+            if [ $? -ne 0 ]; then
+                echo "[  FAILED ]"
+            else
+                echo "[ STOPPED ]"
+            fi
+        else
+            echo "./$PROSOFT_STARTUP_APPLICATION not running."
+        fi  
+        ;;
+  restart)
+        $0 stop
+        $0 start
+        ;;
+  *)
+  echo "Usage: $0 {start|stop|restart}"
+  exit 1
+esac
+
+cd $OLD_WD
+exit 0

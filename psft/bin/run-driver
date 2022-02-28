@@ -1,0 +1,50 @@
+#!/bin/sh
+#######################################################################################
+#  File   : run-driver
+#  Author : Larry Frieson
+#  Desc   : run-driver is a script for the MVI56E-LDM, MVI69E-LDM and the PLX30-LDM
+#           development modules.  The script it setup to monitor the exit code from the
+#           drivers main() function.  Based on the exit code, it can perform a warm boot,
+#           cold boot, and even cold boot when an unforeseen event causes the driver to
+#           unexpectedly shutdown.  Just replace the LDM_Driver with the actual file name
+#           of your actual binary executable file.  This script should be called directly
+#           from your 'startup' script from the /psft/bin folder on your LDM module.
+#           NOTE:  This is just one of the many ways to handle starting and stopping an 
+#           LDM driver. Please visit:
+#           https://gitlab.com/psft for more information and examples.
+#  Date   : 09/10/2019
+#
+#  Copyright (C) 2019 ProSoft Technology, Inc.  All rights reserved.
+#
+# Revision History:
+#    09/10/2019 09:32:08 created.
+#
+#######################################################################################
+# Declare the name of our driver...
+DRIVER_NAME=LDM_Driver
+
+# Launch the driver from the current directory, which should be /psft/bin
+./$DRIVER_NAME
+# Make sure we capture the exit code, then take action based on its value.  Note that you
+# can add other specialized return values, simply by either the RETURN value of main(), or
+# by calling `exit(n);` from within for C code.
+DRIVER_EXIT=$?
+if [ $DRIVER_EXIT -eq 0 ] ; then
+    # The driver exited normally, so simply call the startup driver with the "start" parameter.
+    ./startup start
+elif [ $DRIVER_EXIT -eq 2 ] ; then
+    # The user requested a warm-boot.
+    ./startup start
+elif [ $DRIVER_EXIT -eq 1 ] ; then
+    # The user requested a cold-boot.
+    reboot
+else
+    # We don't know what happened.  The driver exited with error, or seg faulted.
+    # Uncomment the reboot command down below to force a restart of the module for 
+    # production mode.  Otherwise, you can observe the exit code, or log it to disk 
+    # to see what happened.
+    echo "The driver shutdown with error = " $DRIVER_EXIT
+    logger "The driver shutdown with error = " $DRIVER_EXIT"
+    sync
+    #reboot
+fi
